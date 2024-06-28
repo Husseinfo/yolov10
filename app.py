@@ -1,11 +1,13 @@
+import os
 import gradio as gr
 import cv2
 import tempfile
 from ultralytics import YOLOv10
 
+model = YOLOv10.from_pretrained(f'jameslahm/yolov10n')
+
 
 def yolov10_inference(image, video, model_id, image_size, conf_threshold):
-    model = YOLOv10.from_pretrained(f'jameslahm/{model_id}')
     if image:
         results = model.predict(source=image, imgsz=image_size, conf=conf_threshold)
         annotated_image = results[0].plot()
@@ -158,4 +160,4 @@ with gradio_app:
         with gr.Column():
             app()
 if __name__ == '__main__':
-    gradio_app.launch()
+    gradio_app.launch(server_name="0.0.0.0", share=os.environ.get('GRADIO_SHARE'))

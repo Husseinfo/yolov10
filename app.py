@@ -3,13 +3,24 @@ import gradio as gr
 import cv2
 import tempfile
 from ultralytics import YOLOv10
+from pprint import pprint
 
 model = YOLOv10.from_pretrained(f'jameslahm/yolov10n')
+
+
+def print_results(results, _results):
+    for i, cls in enumerate(results[0].boxes.cls):
+        class_id = int(cls)
+        class_name = results[0].names[class_id]
+        _results[class_name] = _results.get(class_name, 0) + 1
+        print(f'Detected object number {i+1}: {class_name}')
+    pprint(f'Current results: {_results}')
 
 
 def yolov10_inference(image, video, model_id, image_size, conf_threshold):
     if image:
         results = model.predict(source=image, imgsz=image_size, conf=conf_threshold)
+        print_results(results, {})
         annotated_image = results[0].plot()
         return annotated_image[:, :, ::-1], None
     else:
@@ -26,15 +37,17 @@ def yolov10_inference(image, video, model_id, image_size, conf_threshold):
         output_video_path = tempfile.mktemp(suffix=".webm")
         out = cv2.VideoWriter(output_video_path, cv2.VideoWriter_fourcc(*'vp80'), fps, (frame_width, frame_height))
 
+        full_results = {}
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
 
             results = model.predict(source=frame, imgsz=image_size, conf=conf_threshold)
+            print_results(results, full_results)
             annotated_frame = results[0].plot()
             out.write(annotated_frame)
-
+        pprint(f'Full results: {full_results}')
         cap.release()
         out.release()
 
